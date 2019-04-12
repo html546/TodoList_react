@@ -1,8 +1,14 @@
 import React, { Component } from "react";
 import "./index.css";
-import { Input, Button, List } from "antd";
-import "antd/dist/antd.css";
 import store from "./store";
+import {
+  getInputChangeAction,
+  getAddItemAction,
+  getItemDeleteAction,
+  initListAction
+} from "./store/actionCreator";
+import TodoListUI from "./TodoListUI";
+import axios from "axios";
 
 class TodoList extends Component {
   constructor(props) {
@@ -11,43 +17,50 @@ class TodoList extends Component {
     this.state = store.getState();
     this.handleInputChange = this.handleInputChange.bind(this);
     this.handleStoreChange = this.handleStoreChange.bind(this);
+    this.handleKeyUp = this.handleKeyUp.bind(this);
+    this.handleAddItem = this.handleAddItem.bind(this);
+    this.handleDeleteItem = this.handleDeleteItem.bind(this);
     store.subscribe(this.handleStoreChange);
   }
-  handleInputChange(e){
-    const action = {
-      type:'change_input_value',
-      value:e.target.value
+  handleKeyUp(e) {
+    if (e.keyCode === 13) {
+      this.handleAddItem();
     }
+  }
+  handleAddItem() {
+    const action = getAddItemAction();
     store.dispatch(action);
   }
-  handleStoreChange(){
+  handleInputChange(e) {
+    const action = getInputChangeAction(e.target.value);
+    store.dispatch(action);
+  }
+  handleDeleteItem(index) {
+    const action = getItemDeleteAction(index);
+    store.dispatch(action);
+  }
+  handleStoreChange() {
     this.setState(store.getState());
+  }
+  componentDidMount() {
+    axios
+      .get("https://www.easy-mock.com/mock/5ca803587e5a246db3d100cb/todolist")
+      .then(res => {
+        console.log(res.data.todolist);
+        const action = initListAction(res.data.todolist);
+        store.dispatch(action);
+      });
   }
   render() {
     return (
-      <div className="todo">
-        <div className="todo-title">
-          <h1>TodoList</h1>
-        </div>
-        <div className="todo-action">
-          <Input placeholder="todo" className="todo-input" value={this.state.inputValue} onChange={this.handleInputChange} />
-          <Button type="primary" className="todo-submit">
-            提交
-          </Button>
-        </div>
-        <div className="todo-list">
-          <List
-            size="large"
-            bordered
-            dataSource={this.state.todoList}
-            renderItem={(item, index) => (
-              <List.Item>
-                {index + 1} - {item}
-              </List.Item>
-            )}
-          />
-        </div>
-      </div>
+      <TodoListUI
+        inputValue={this.state.inputValue}
+        todoList={this.state.todoList}
+        handleInputChange={this.handleInputChange}
+        handleKeyUp={this.handleKeyUp}
+        handleAddItem={this.handleAddItem}
+        handleDeleteItem={this.handleDeleteItem}
+      />
     );
   }
 }
